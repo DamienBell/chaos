@@ -15,7 +15,10 @@
 	  }
 	  #canvas-frame{
 		  border: 1px solid #ccc;
-		  background-color: #222;
+		  background-color: rgba(0,200,138, 0.5);
+	  }
+	  canvas{
+			 background-color: #222;  
 	  }
 	  #controls{
 		  width: 100%;
@@ -64,16 +67,16 @@
     
   var App= (function(){
 		return {
-			radius: 0.2,//width of pixel drawing
+			radius: 0.5,//width of pixel drawing
 			color: "#00c88a",
-			density: 150,
+			density: 100,
 			max: 50000,
 			index: 0,
 			playing: false,
 			generating: false,
 			play: function() {
 				this.playing=true;	
-				
+				$count= $('#count');
 				(function animloop(){
 					if (App.playing) {
 						
@@ -81,7 +84,7 @@
 						
 							for(var i= 0; i  < App.density; i++){
 								App.index++;
-								$('#count').text(App.index);
+								$count.text(App.index);
 								var basepoint= App.getBasePoint(App.rollDice());
 							
 								if(basepoint){
@@ -89,10 +92,9 @@
 									App.drawCircle(half_point, App.radius);	
 									
 									App.currentPoint= half_point;
-								}else{
-									console.log('wth no basepoint');
-								}	
+								}
 							}
+							App.drawProgress();
 							
 						}else{
 							console.log('clearing')
@@ -112,7 +114,7 @@
 			drawCircle: function(obj,radius){
 				var ctx= this.ctx;
 				ctx.beginPath();
-				ctx.fillStyle= App.color;
+				ctx.fillStyle= App.getColor();
 				ctx.arc(obj.x, obj.y, radius, 0, Math.PI*2, true); 
 				ctx.closePath();
 				ctx.fill();	
@@ -120,6 +122,15 @@
 			rollDice: function(){
 				return Math.floor(6*Math.random());
 			
+			},
+			drawProgress: function(){
+		
+				var percent= App.index/App.max;
+				var width= App.width*percent;
+				this.ctx.fillStyle= this.getColor();
+				
+				this.ctx.fillRect(0,App.height -9,width, 10);
+				
 			},
 			//return the relevant base point
 			getBasePoint: function(die){
@@ -137,6 +148,13 @@
 				var x= (p1.x + p2.x)/2;
 				var y= (p1.y + p2.y)/2;	
 				return {x:x, y:y};
+			},
+			//return a green-ish color
+			getColor: function(){
+				var r= String(Math.floor(Math.random()* 64));
+				var g= "200"
+				var b= String(Math.floor(Math.random()* 138) + 58);
+				return 'rgb('+r+','+g+','+b+')';	
 			},
 			set: function(propery, value){
 				switch(propery){
@@ -163,7 +181,6 @@
 			  	canvas.width = App.width = $(window).width()- 20;
 			  	this.ctx= canvas.getContext('2d');
 			 
-			  	
 			  	//set up first three points
 			  	this.points= [{x: 0, y: 0},{x: this.width, y:0},{x: this.width/2, y: this.height}];
 			  	
