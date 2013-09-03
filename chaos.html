@@ -1,0 +1,215 @@
+<!doctype html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <title></title>
+  <meta name="description" content="">
+
+  <!-- Mobile viewport optimized: h5bp.com/viewport -->
+  <meta name="viewport" content="width=device-width">
+  <style>
+	  body{
+		   background-color: '#deebe9';
+	  }
+	  #canvas-frame{
+		  border: 1px solid #ccc;
+		  background-color: #222;
+	  }
+	  #controls{
+		  width: 100%;
+		  height: 150px;
+	  }
+	  
+  </style>
+</head>
+<body>
+
+  <div id="canvas-frame">
+	  <canvas id="canvas"></canvas>	  
+  </div>
+  <div id="controls">
+  	  <button id="play">Pause</button>
+  	  <div>
+  	  	<label>Density</label>
+	  	<input id="density" type="range" name="density" min="1" max="500">
+  	  </div>
+  	  <div>
+  	  	<label>Radius</label>
+	  	<input id="radius" type="range" name="radius" step="0.2" min="0.2" max="5">
+	  	
+	  	 <label>Max Dots</label>
+	  	<input id="max" type="range" name="max" step="1000" min="1000" max="150000">
+  	  </div>
+  	  
+  	  <label>dots</label>
+  	  <span id="count"></span>
+  	  
+  	  
+  </div>
+  <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>  
+  <script>
+	/* Create a requestAnimFram polyfill */
+    window.requestAnimFrame = (function(){
+      return  window.requestAnimationFrame       || 
+              window.webkitRequestAnimationFrame || 
+              window.mozRequestAnimationFrame    || 
+              window.oRequestAnimationFrame      || 
+              window.msRequestAnimationFrame     || 
+              function( callback ){
+                window.setTimeout(callback, 1000 / 30);
+              };
+    })();
+    
+  var App= (function(){
+		return {
+			radius: 0.2,//width of pixel drawing
+			color: "#00c88a",
+			density: 150,
+			max: 50000,
+			index: 0,
+			playing: false,
+			generating: false,
+			play: function() {
+				this.playing=true;	
+				
+				(function animloop(){
+					if (App.playing) {
+						
+						if(App.index < App.max){
+						
+							for(var i= 0; i  < App.density; i++){
+								App.index++;
+								$('#count').text(App.index);
+								var basepoint= App.getBasePoint(App.rollDice());
+							
+								if(basepoint){
+									var half_point= App.midPoint(basepoint, App.currentPoint);
+									App.drawCircle(half_point, App.radius);	
+									
+									App.currentPoint= half_point;
+								}else{
+									console.log('wth no basepoint');
+								}	
+							}
+							
+						}else{
+							console.log('clearing')
+							App.index = 0;
+							App.clear();
+						}
+						
+
+						requestAnimFrame(animloop);
+					}
+			    })();
+			},
+			pause: function() {
+				clearInterval(this.interval);
+				this.playing=false;
+			},
+			drawCircle: function(obj,radius){
+				var ctx= this.ctx;
+				ctx.beginPath();
+				ctx.fillStyle= App.color;
+				ctx.arc(obj.x, obj.y, radius, 0, Math.PI*2, true); 
+				ctx.closePath();
+				ctx.fill();	
+			},
+			rollDice: function(){
+				return Math.floor(6*Math.random());
+			
+			},
+			//return the relevant base point
+			getBasePoint: function(die){
+				for(var i=0; i < this.points.length; i++){
+					var ids= this.points[i].ids;
+					for(var j = 0; j < ids.length; j++){
+					
+						if(ids[j] == die){
+							return this.points[i];
+						}
+					}
+				}
+			},
+			midPoint: function(p1, p2){
+				var x= (p1.x + p2.x)/2;
+				var y= (p1.y + p2.y)/2;	
+				return {x:x, y:y};
+			},
+			set: function(propery, value){
+				switch(propery){
+					case "density":
+						this.density= Number(value);
+					break;	
+					case "radius":
+						this.radius= Number(value);
+					break;	
+					case "max":
+						this.max= Number(value);
+					break;
+				}
+			},
+			clear: function(){
+				this.ctx.clearRect(0 , 0, App.width , App.height );
+			},
+
+			init: function(){
+		
+			  	var canvas= $('#canvas')[0];
+			  
+			  	canvas.height= App.height = $(window).height() - 150;
+			  	canvas.width = App.width = $(window).width()- 20;
+			  	this.ctx= canvas.getContext('2d');
+			 
+			  	
+			  	//set up first three points
+			  	this.points= [{x: 0, y: 0},{x: this.width, y:0},{x: this.width/2, y: this.height}];
+			  	
+			  	var id= 0;
+			  	for(var i =0; i < this.points.length; i++){
+					var p= this.points[i];
+						p.ids= [id, id+1];
+						id +=2;	
+			  	}
+			  	var x= Math.random()*this.width;
+				var y= Math.random()*this.height;
+
+				this.currentPoint={x:x, y:y}; 
+				
+				$('#density').val(App.density);
+				$('#max').val(App.max);
+				$('#radius').val(App.radius);
+				$('#count').val(0);
+			  	
+			  	$('#play').on('click',function(){
+				  	if(App.playing){
+					  	App.pause();
+					  	$(this).text('Play');
+				  	}else{
+					  	App.play();
+					  	$(this).text('Pause');
+				  	}
+			  	});
+			  	$('#clear').on('click', function(){
+				  	
+			  	});
+			  	$('input[type="range"]').on('change', function(){
+				  	var property = $(this).attr('name');
+					  App.set(property,$(this).val());	
+			  	});
+			  	this.count_label= $('#count');
+			  	App.play();
+		   	
+		  	}
+		}
+	})();
+
+  $(document).ready(function(){
+	  App.init();
+  });
+  </script>
+
+</body>
+</html>
